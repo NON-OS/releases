@@ -93,7 +93,7 @@ Then create the machine. In the GUI:
 2. System: tick **Enable EFI**, chipset **ICH9**.
 3. Storage: remove the IDE controller, add a **SATA (AHCI)** controller, and put
    `nonos.vdi` or `nonos.iso` on it.
-4. Network: adapter type **Paravirtualized Network (virtio-net)**.
+4. Network: adapter type **Paravirtualized Network (virtio-net)** (see the known issue below).
 5. USB: **USB 3.0 (xHCI)**.
 6. Display: **VMSVGA**, 128 MB.
 
@@ -111,8 +111,12 @@ VBoxManage startvm NONOS
 For the ISO, attach it with `--type dvddrive --medium nonos.iso` instead.
 
 Two things that stop it from booting: leaving EFI off, and keeping the default
-IDE controller. In 0.9.2, pick the virtio-net adapter: the default Intel
-PRO/1000 card is detected but its receive path doesn't work yet.
+IDE controller.
+
+Known issue in 0.9.2: NØNOS boots and runs in VirtualBox, but it doesn't get
+a network connection there yet, with either the virtio-net or the Intel
+PRO/1000 adapter. Networking works in QEMU. The fix is in progress for the
+next release; until then, use QEMU if you need the network.
 
 VirtualBox needs hardware virtualization (VT-x or AMD-V), so it can't run
 NØNOS on an Apple Silicon Mac or inside most cloud VPSes.
