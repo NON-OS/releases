@@ -69,11 +69,12 @@ cp /usr/share/OVMF/OVMF_VARS_4M.fd nonos-vars.fd
 qemu-system-x86_64 -machine q35 -accel kvm -cpu host -m 4G -smp 4 \
   -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
   -drive if=pflash,format=raw,file=nonos-vars.fd \
-  -cdrom nonos.iso -device qemu-xhci -device virtio-rng-pci \
-  -nic user,model=virtio-net-pci
+  -drive file=nonos.img,format=raw,if=virtio \
+  -nic user,model=virtio-net-pci -device qemu-xhci -device usb-tablet -device virtio-rng-pci
 ```
 
-The firmware paths are Debian and Ubuntu's (`apt install qemu-system-x86 ovmf`).
+Boot the disk image, not the ISO: from the ISO NØNOS has no disk to keep
+Linux programs on. The firmware paths are Debian and Ubuntu's (`apt install qemu-system-x86 ovmf`).
 On Arch, install `edk2-ovmf` and use `/usr/share/edk2/x64/OVMF_CODE.4m.fd` and
 `OVMF_VARS.4m.fd`. On macOS, `-accel hvf` on Intel Macs. Apple Silicon Macs
 can only emulate x86: leave out `-accel` and `-cpu host`, expect it to be slow,
