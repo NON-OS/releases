@@ -58,6 +58,65 @@ Or rebuild it yourself with Nix and compare:
 nix build github:NON-OS/microkernel/v0.9.2#standard
 ```
 
+## Running it in a virtual machine
+
+NØNOS is x86_64 and boots with UEFI. These are the setups we boot it with.
+
+### QEMU (the one we test on)
+
+```
+cp /usr/share/OVMF/OVMF_VARS_4M.fd nonos-vars.fd
+qemu-system-x86_64 -machine q35 -accel kvm -cpu host -m 4G -smp 4 \
+  -drive if=pflash,format=raw,readonly=on,file=/usr/share/OVMF/OVMF_CODE_4M.fd \
+  -drive if=pflash,format=raw,file=nonos-vars.fd \
+  -cdrom nonos.iso -device qemu-xhci -device virtio-rng-pci \
+  -nic user,model=virtio-net-pci
+```
+
+The firmware paths are Debian and Ubuntu's (`apt install qemu-system-x86 ovmf`).
+On Arch, install `edk2-ovmf` and use `/usr/share/edk2/x64/OVMF_CODE.4m.fd` and
+`OVMF_VARS.4m.fd`. On macOS, `-accel hvf` on Intel Macs. Apple Silicon Macs
+can only emulate x86: leave out `-accel` and `-cpu host`, expect it to be slow,
+or use [UTM](https://mac.getutm.app) with "Emulate" and x86_64.
+
+### VirtualBox 7
+
+Tested with VirtualBox 7.2.6. Use the ISO, or turn the disk image into a VDI:
+
+```
+VBoxManage convertfromraw nonos.img nonos.vdi --format VDI
+```
+
+Then create the machine. In the GUI:
+
+1. Type **Other**, version **Other/Unknown (64-bit)**. 4096 MB of memory, 2 CPUs.
+2. System: tick **Enable EFI**, chipset **ICH9**.
+3. Storage: remove the IDE controller, add a **SATA (AHCI)** controller, and put
+   `nonos.vdi` or `nonos.iso` on it.
+4. Network: adapter type **Paravirtualized Network (virtio-net)**.
+5. USB: **USB 3.0 (xHCI)**.
+6. Display: **VMSVGA**, 128 MB.
+
+Or the same from a terminal:
+
+```
+VBoxManage createvm --name NONOS --ostype Other_64 --register
+VBoxManage modifyvm NONOS --firmware efi --chipset ich9 --memory 4096 --cpus 2 \
+  --nic1 nat --nictype1 virtio --usbxhci on --graphicscontroller vmsvga --vram 128
+VBoxManage storagectl NONOS --name SATA --add sata --controller IntelAhci
+VBoxManage storageattach NONOS --storagectl SATA --port 0 --type hdd --medium nonos.vdi
+VBoxManage startvm NONOS
+```
+
+For the ISO, attach it with `--type dvddrive --medium nonos.iso` instead.
+
+Two things that stop it from booting: leaving EFI off, and keeping the default
+IDE controller. In 0.9.2, pick the virtio-net adapter: the default Intel
+PRO/1000 card is detected but its receive path doesn't work yet.
+
+VirtualBox needs hardware virtualization (VT-x or AMD-V), so it can't run
+NØNOS on an Apple Silicon Mac or inside most cloud VPSes.
+
 ## What's in each version folder
 
 Each `vX.Y.Z/` folder holds the small, public half of a release, so it can be
