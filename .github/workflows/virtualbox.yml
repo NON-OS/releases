@@ -93,9 +93,18 @@ jobs:
           enter
           shot 14-desktop 60
           # The Terminal (Ctrl+Alt+T), and the network from inside NONOS.
-          key 1d 38 14 94 b8 9d
+          # Held one at a time, as fingers press them: Ctrl, Alt, then T.
+          key 1d; sleep 0.3; key 38; sleep 0.3; key 14; sleep 0.3; key 94; sleep 0.2; key b8; sleep 0.2; key 9d
           shot 15-terminal 10
-          type() { VBoxManage controlvm NONOS keyboardputstring "$1"; enter; }
+          if cmp -s out/14-desktop.png out/15-terminal.png; then
+            # Second way in: the Terminal is the first icon of the dock; Super opens Launchpad.
+            key e0 5b; sleep 0.3; key e0 db
+            shot 15b-launchpad 5
+            VBoxManage controlvm NONOS keyboardputstring "terminal"
+            sleep 2; enter
+            shot 15c-terminal 10
+          fi
+          type() { VBoxManage controlvm NONOS keyboardputstring "$1"; sleep 1; enter; }
           type "ifconfig"
           shot 16-ifconfig 6
           type "nslookup example.com"
