@@ -43,11 +43,14 @@ jobs:
 
       - name: Install VirtualBox
         run: |
+          # Oracle's own build: Ubuntu's 7.0 module does not build on the runner's kernel.
+          wget -qO- https://www.virtualbox.org/download/oracle_vbox_2016.asc | sudo gpg --dearmor -o /usr/share/keyrings/oracle-virtualbox.gpg
+          echo "deb [arch=amd64 signed-by=/usr/share/keyrings/oracle-virtualbox.gpg] https://download.virtualbox.org/virtualbox/debian noble contrib" | sudo tee /etc/apt/sources.list.d/virtualbox.list
           sudo apt-get update -q
-          sudo apt-get install -y -q "linux-headers-$(uname -r)" virtualbox virtualbox-dkms
+          sudo apt-get install -y -q "linux-headers-$(uname -r)" build-essential dkms virtualbox-7.2
           # VirtualBox needs VT-x to itself.
           sudo modprobe -r kvm_intel kvm_amd kvm 2>/dev/null || true
-          sudo modprobe vboxdrv
+          sudo /sbin/vboxconfig || { cat /var/log/vbox-setup.log; exit 1; }
           sudo usermod -aG vboxusers "$USER"
           VBoxManage --version
 
