@@ -1,0 +1,118 @@
+# Boots a published release in VirtualBox the way docs/virtualbox.md sets it up (EFI, ICH9, the
+# disk on SATA, an Intel PRO/1000 MT card on NAT) and keeps what it did: the serial log, a trace
+# of every frame on the card, a screenshot and VBox.log. It passes when the card took a DHCP
+# address and carried traffic past it.
+name: virtualbox
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag"
+        required: true
+        default: "v0.9.3"
+      nic:
+        description: "VirtualBox card type (82540EM is Intel PRO/1000 MT Desktop)"
+        required: true
+        default: "82540EM"
+      boot_seconds:
+        description: "How long to let it run"
+        required: true
+        default: "240"
+
+permissions:
+  contents: read
+
+jobs:
+  boot:
+    name: boot (${{ inputs.version }}, ${{ inputs.nic }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      VERSION: ${{ inputs.version }}
+      NIC: ${{ inputs.nic }}
+      BOOT_SECONDS: ${{ inputs.boot_seconds }}
+    steps:
+      - name: Fetch the image and check it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p out
+          gh release download "$VERSION" --repo "$GITHUB_REPOSITORY" --pattern nonos.img --pattern IMAGE-SHA256SUMS
+          sha256sum -c IMAGE-SHA256SUMS --ignore-missing
+
+      - name: Install VirtualBox
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q "linux-headers-$(uname -r)" virtualbox virtualbox-dkms
+          # VirtualBox needs VT-x to itself.
+          sudo modprobe -r kvm_intel kvm_amd kvm 2>/dev/null || true
+          sudo modprobe vboxdrv
+          sudo usermod -aG vboxusers "$USER"
+          VBoxManage --version
+
+      - name: Create the machine
+        run: |
+          VBoxManage convertfromraw nonos.img nonos.vdi --format VDI
+          VBoxManage createvm --name NONOS --ostype Other_64 --register
+          VBoxManage modifyvm NONOS --firmware efi --chipset ich9 --ioapic on --memory 4096 --cpus 2 \
+            --nic1 nat --nictype1 "$NIC" --nictrace1 on --nictracefile1 "$PWD/out/net.pcap" \
+            --usbxhci on --graphicscontroller vmsvga --vram 128 \
+            --uart1 0x3F8 4 --uartmode1 file "$PWD/out/serial.log"
+          VBoxManage modifyvm NONOS --audio-enabled off || true
+          VBoxManage storagectl NONOS --name SATA --add sata --controller IntelAhci
+          VBoxManage storageattach NONOS --storagectl SATA --port 0 --type hdd --medium nonos.vdi
+
+      - name: Boot it
+        run: |
+          VBoxManage startvm NONOS --type headless
+          sleep "$BOOT_SECONDS"
+          VBoxManage controlvm NONOS screenshotpng "$PWD/out/screen.png" || true
+          VBoxManage controlvm NONOS poweroff || true
+          sleep 5
+          cp "$HOME/VirtualBox VMs/NONOS/Logs/VBox.log" out/ 2>/dev/null || true
+
+      - name: Say what happened
+        run: |
+          echo "=== VirtualBox's view of the CPU ==="
+          grep -E "HM: HMR3Init|VT-x|AMD-V|NEM" out/VBox.log | head -5 || true
+          echo "=== the card, from the kernel's log ==="
+          grep -aE "\[PCI\].*Ethernet|\[HW\].*02/00|name=driver\.(e1000|pcnet|virtio_net)|name=net\.core|\[EXIT\].*(e1000|pcnet|virtio_net)" out/serial.log || echo "no card lines"
+          echo "=== serial, last 15 lines ==="
+          tail -15 out/serial.log || echo "no serial output"
+          echo "=== the network trace ==="
+          python3 - out/net.pcap <<'PY'
+          import struct, sys, collections
+          d = open(sys.argv[1], "rb").read()
+          o, frames, dhcp, tcp, peers = 24, 0, [], 0, collections.Counter()
+          names = {1: "DISCOVER", 2: "OFFER", 3: "REQUEST", 5: "ACK", 6: "NAK"}
+          while o + 16 <= len(d):
+              _, _, cl, _ = struct.unpack("<IIII", d[o:o + 16]); p = d[o + 16:o + 16 + cl]; o += 16 + cl; frames += 1
+              if len(p) < 34 or p[12:14] != b"\x08\x00":
+                  continue
+              ihl = (p[14] & 15) * 4; proto = p[23]; src = ".".join(map(str, p[26:30])); dst = ".".join(map(str, p[30:34]))
+              if proto == 17:
+                  sp, dp = struct.unpack(">HH", p[14 + ihl:18 + ihl])
+                  if {sp, dp} & {67, 68}:
+                      b = p[14 + ihl + 8:]; opt = b[240:]; i = 0; t = None
+                      while i < len(opt) and opt[i] != 255:
+                          if opt[i] == 53: t = opt[i + 2]; break
+                          i += 2 + opt[i + 1] if opt[i] else 1
+                      dhcp.append("%s %s -> %s yiaddr %s" % (names.get(t, t), src, dst, ".".join(map(str, b[16:20]))))
+              elif proto == 6:
+                  tcp += 1; sp, dp = struct.unpack(">HH", p[14 + ihl:18 + ihl])
+                  if src.startswith("10.0.2."): peers["%s:%d" % (dst, dp)] += 1
+          print(frames, "frames;", tcp, "TCP")
+          print("\n".join(dhcp) or "no DHCP")
+          for k, v in peers.most_common(8): print("  out to", k, v)
+          ok = any(x.startswith("ACK") for x in dhcp) and tcp > 20
+          print("RESULT:", "network up" if ok else "no network")
+          sys.exit(0 if ok else 1)
+          PY
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: virtualbox-${{ inputs.version }}-${{ inputs.nic }}
+          path: out/
+          retention-days: 30
