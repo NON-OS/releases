@@ -27,7 +27,7 @@ jobs:
   boot:
     name: boot (${{ inputs.version }}, ${{ inputs.nic }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       VERSION: ${{ inputs.version }}
       NIC: ${{ inputs.nic }}
@@ -88,6 +88,22 @@ jobs:
           enter
           shot 06-network-route 6
           shot 06-network-route-later 45
+          # Steps 7 to 13 on their defaults, then the desktop.
+          for n in 07 08 09 10 11 12 13; do enter; shot "$n-setup" 5; done
+          enter
+          shot 14-desktop 60
+          # The Terminal (Ctrl+Alt+T), and the network from inside NONOS.
+          key 1d 38 14 94 b8 9d
+          shot 15-terminal 10
+          type() { VBoxManage controlvm NONOS keyboardputstring "$1"; enter; }
+          type "ifconfig"
+          shot 16-ifconfig 6
+          type "nslookup example.com"
+          shot 17-nslookup 40
+          type "ping -c 3 example.com"
+          shot 18-ping 40
+          type "curl -sS https://example.com"
+          shot 19-curl 90
           VBoxManage controlvm NONOS poweroff || true
           sleep 5
           cp "$HOME/VirtualBox VMs/NONOS/Logs/VBox.log" out/ 2>/dev/null || true
