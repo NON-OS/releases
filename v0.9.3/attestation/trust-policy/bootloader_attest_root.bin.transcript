@@ -1,0 +1,9 @@
+nonos-policy-transcript v2
+tool nonos-stark-enroll 0.2.0
+source unrecorded
+depth 8
+policy_epoch 1
+boot_epoch 1
+pad_seed fcb39f3a9a902bf132764fb0da3a1fb418f3587e79ef5fb1f465b90ea074adad
+slot 0 bootloader c3ee0ee9c9a3490e898c008f206c46bb37f8e0049fd68387357a9689b54861c6
+root 4b5d09d945374216221ebb53aadb3af0f2326377aafc419908c8c61045ff30d9

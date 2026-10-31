@@ -29,7 +29,7 @@ pick `nonos.img`.
 ## Booting
 
 Restart, open the boot menu (often F12, F11 or Esc), and choose the stick in
-UEFI mode. 0.9.2 hasn't been tested with Secure Boot on, so turn it off.
+UEFI mode. 0.9.3 hasn't been tested with Secure Boot on, so turn it off.
 
-In 0.9.2 a stick boots as a live session: what you do isn't saved back to the
+In 0.9.3 a stick boots as a live session: what you do isn't saved back to the
 stick. To keep things, install NØNOS to a disk from the desktop.
