@@ -63,14 +63,31 @@ jobs:
             --usbxhci on --graphicscontroller vmsvga --vram 128 \
             --uart1 0x3F8 4 --uartmode1 file "$PWD/out/serial.log"
           VBoxManage modifyvm NONOS --audio-enabled off || true
+          VBoxManage modifyvm NONOS --recording on --recording-file "$PWD/out/session.webm" \
+            --recording-video-res 1024x768 --recording-video-fps 10 || true
           VBoxManage storagectl NONOS --name SATA --add sata --controller IntelAhci
           VBoxManage storageattach NONOS --storagectl SATA --port 0 --type hdd --medium nonos.vdi
 
-      - name: Boot it
+      - name: Boot it, then walk the first-boot setup to the network
         run: |
+          shot() { sleep "$2"; VBoxManage controlvm NONOS screenshotpng "$PWD/out/$1.png" || true; }
+          key() { VBoxManage controlvm NONOS keyboardputscancode "$@"; }
+          enter() { key 1c 9c; }
           VBoxManage startvm NONOS --type headless
-          sleep "$BOOT_SECONDS"
-          VBoxManage controlvm NONOS screenshotpng "$PWD/out/screen.png" || true
+          shot 01-setup "$BOOT_SECONDS"
+          enter                                       # keyboard: US QWERTY
+          shot 02-name 4
+          VBoxManage controlvm NONOS keyboardputstring "nonos"
+          enter
+          shot 03-time-zone 4
+          enter
+          shot 04-mode 4
+          enter
+          shot 05-network 6
+          shot 05-network-later 30
+          enter
+          shot 06-network-route 6
+          shot 06-network-route-later 45
           VBoxManage controlvm NONOS poweroff || true
           sleep 5
           cp "$HOME/VirtualBox VMs/NONOS/Logs/VBox.log" out/ 2>/dev/null || true
