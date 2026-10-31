@@ -21,7 +21,7 @@ You can also attach `nonos.iso` as an optical drive instead.
 | Memory | 4096 MB, 2 CPUs |
 | System | Enable EFI, chipset ICH9 |
 | Storage | SATA (AHCI) controller, with nonos.vdi on it |
-| Network | Paravirtualized Network (virtio-net) |
+| Network | Intel PRO/1000 MT Desktop (82540EM) |
 | USB | USB 3.0 (xHCI) |
 | Display | VMSVGA, 128 MB |
 
@@ -33,13 +33,19 @@ From a terminal:
 ```
 VBoxManage createvm --name NONOS --ostype Other_64 --register
 VBoxManage modifyvm NONOS --firmware efi --chipset ich9 --memory 4096 --cpus 2 \
-  --nic1 nat --nictype1 virtio --usbxhci on --graphicscontroller vmsvga --vram 128
+  --nic1 nat --nictype1 82540EM --usbxhci on --graphicscontroller vmsvga --vram 128
 VBoxManage storagectl NONOS --name SATA --add sata --controller IntelAhci
 VBoxManage storageattach NONOS --storagectl SATA --port 0 --type hdd --medium nonos.vdi
 VBoxManage startvm NONOS
 ```
 
-## Known issue in 0.9.2
+## The network
 
-NØNOS boots and runs in VirtualBox but doesn't get a network connection there
-yet. It's being fixed. If you need the network now, use [QEMU](qemu.md).
+0.9.3 drives the Intel 82540EM, the card VirtualBox calls Intel PRO/1000 MT
+Desktop, so pick that one. The sealed 0.9.3 image, on that card and a SATA
+disk, took a DHCP address and reached the Nym and Anyone networks; that run was
+under QEMU's model of the same card, and a run in VirtualBox itself is still to
+come. If the network doesn't come up, use [QEMU](qemu.md) and tell us in an
+[issue](https://github.com/NON-OS/releases/issues).
+
+0.9.2 had no network in VirtualBox.
