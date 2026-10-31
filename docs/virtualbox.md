@@ -1,6 +1,6 @@
 # Running NØNOS in VirtualBox
 
-Tested with VirtualBox 7.2. It needs a machine with VT-x or AMD-V, so not an
+Tested with VirtualBox 7.2, on Linux. It needs a machine with VT-x or AMD-V, so not an
 Apple silicon Mac and not most cloud servers.
 
 ## The disk
@@ -42,10 +42,11 @@ VBoxManage startvm NONOS
 ## The network
 
 0.9.3 drives the Intel 82540EM, the card VirtualBox calls Intel PRO/1000 MT
-Desktop, so pick that one. The sealed 0.9.3 image, on that card and a SATA
-disk, took a DHCP address and reached the Nym and Anyone networks; that run was
-under QEMU's model of the same card, and a run in VirtualBox itself is still to
-come. If the network doesn't come up, use [QEMU](qemu.md) and tell us in an
-[issue](https://github.com/NON-OS/releases/issues).
+Desktop, so pick that one. Booted in VirtualBox 7.2 with the settings above,
+the published 0.9.3 image reached its first-boot setup, took a DHCP address
+(10.0.2.15) and connected out to the Nym and Anyone networks. The run, with its
+serial log, network trace and screenshot, is the
+[`virtualbox` workflow](../.github/workflows/virtualbox.yml) of this repository;
+run it on any release from the Actions tab.
 
 0.9.2 had no network in VirtualBox.
