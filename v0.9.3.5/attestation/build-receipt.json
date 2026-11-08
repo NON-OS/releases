@@ -1,0 +1,47 @@
+{
+  "artifacts": {
+    "/Users/nonos/mk-release/microkernel/target/release/standard/nonos.img": {
+      "bytes": 1043148800,
+      "sha256": "689208557db66b4ea36bff5ce155218fd71b3272b971c17c695b0a73f7f9a805"
+    },
+    "/Users/nonos/mk-release/microkernel/target/release/standard/nonos.iso": {
+      "bytes": 313700352,
+      "sha256": "18e8963918bc4ee637a5499aab6b5bc82ec3bf4797a68f3816d125af7b3077e4"
+    },
+    "/Users/nonos/mk-release/microkernel/target/release/standard/work/kernel.bin": {
+      "bytes": 129387784,
+      "sha256": "7dd94c98a3eee306252534abae582ad4c95935c34ad2c5933c95af9e1d3a3899"
+    }
+  },
+  "roots": {
+    "capsule_policy": {
+      "embedded_in_kernel": true,
+      "root": "cf88fe6ce5f41229003e44eb935a0e79b20fbb2bc7b1f54c76cc2be999123672"
+    },
+    "kernel_attest": {
+      "embedded_in": "bootloader",
+      "ok": true,
+      "root": "0dad546c168c26a2547d2109d567d3a59a66986082910a74a1dd41e0f5ccb7e8"
+    }
+  },
+  "schema": "nonos.build.receipt.v1",
+  "source": {
+    "branch": "main",
+    "commit": "b9c19ac9402a500b512b152b569e06d0a9caf302",
+    "dirty": true,
+    "source_date_epoch": null
+  },
+  "toolchain": {
+    "host": "Darwin-arm64",
+    "rustc": null
+  },
+  "verification": {
+    "gates_before_receipt": [
+      "ledger",
+      "manifest_signatures",
+      "declared_caps",
+      "stark_membership"
+    ],
+    "root_embedding": "pass"
+  }
+}
